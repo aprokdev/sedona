@@ -1,178 +1,74 @@
-"use strict";
-
-var gulp = require("gulp"),
-    sass = require("gulp-sass"),
-    cssbeautify = require("gulp-cssbeautify"),
-    autoprefixer = require("gulp-autoprefixer"),
-    watch = require("gulp-watch"),
-    plumber = require("gulp-plumber"),
-    removeComments = require('gulp-strip-css-comments'),
-    rename = require("gulp-rename"), 
-    cssnano = require("gulp-cssnano"),
-    webserver = require("browser-sync"),
-    rigger = require("gulp-rigger"),
-    uglify = require("gulp-uglify"),
-    imagemin = require("gulp-imagemin"),
-    run = require("run-sequence"),
-    rimraf = require("rimraf");
+const { src, dest, watch, series, task } = require('gulp');
+const sass = require('gulp-sass')(require('sass'));
+const autoprefixer = require('gulp-autoprefixer');
+const plumber = require('gulp-plumber');
+const rename = require("gulp-rename");
+const gulpPug = require('gulp-pug');
+const browserSync = require('browser-sync').create();
+const cssnano = require('gulp-cssnano');
+const del = require('del');
+const tiny = require('gulp-tinypng-nokey');
 
 
+function buildHTML() {
+    return src('src/pug/pages/*.pug')
+            .pipe(gulpPug({
+                basedir: 'src/pug/pages',
+                pretty: true
+            }))
+            .pipe(dest('./src'))
+            .pipe(browserSync.stream({ stream: true  }))
+}
 
-var path = {
-    build: {
-        html: "build/",
-        js: "build/assets/js/",
-        css: "build/assets/css/",
-        img: "build/assets/img/",
-        fonts: "build/assets/fonts/"
-    },
-    src: {
-        html: "src/*.{htm,html}",
-        js: "src/assets/js/*.js",
-        css: "src/assets/scss/main.scss",
-        img: "src/assets/img/**/*.*",
-        fonts: "src/assets/fonts/**/*.*"
-    },
-    watch: {
-        html: "src/**/*.{htm,html}",
-        js: "src/assets/js/**/*.js",
-        css: "src/assets/scss/**/*.scss",
-        img: "src/assets/img/**/*.*",
-        fonts: "src/assets/fonts/**/*.*"
-    },
-    clean: "./build"
-};
+function buildScripts() {
+    return src('src/assets/js/*.js')
+            .pipe(plumber())
+            .pipe(dest('./src'))
+            .pipe(browserSync.stream({ stream: true  }))
+}
 
-
-
-/* Webserver config
-=========================*/
-
-var config = {
-    server: "build/",
-    notify: false,
-    open: true,
-    ui: false
-};
-
-
-
-/* Tasks
-=========================*/
-
-gulp.task("webserver", function () {
-    webserver(config);
-});
-
-
-gulp.task("html:build", function () {
-    return gulp.src(path.src.html)
-        .pipe(plumber())
-        .pipe(rigger())
-        .pipe(gulp.dest(path.build.html))
-        .pipe(webserver.reload({stream: true}));
-});
-
-
-gulp.task("css:build", function () {
-    gulp.src(path.src.css)
-        .pipe(plumber())
-        .pipe(sass())
-        .pipe(autoprefixer({
-            browsers: ["last 5 versions"],
-            cascade: true
-        }))
-        .pipe(removeComments())
-        .pipe(cssbeautify({
-          indent: "  ",
-          openbrace: "end-of-line",
-          autosemicolon: true
-        }))
-        .pipe(gulp.dest(path.build.css))
-        .pipe(cssnano({
-            zindex: false,
-            discardComments: {
-                removeAll: true
-            }
-        }))
-        .pipe(rename("main.min.css"))
-        .pipe(gulp.dest(path.build.css))
-        .pipe(webserver.reload({stream: true}));
-});
-
-
-gulp.task("js:build", function () {
-    gulp.src(path.src.js)
-        .pipe(plumber())
-        .pipe(rigger())
-        .pipe(gulp.dest(path.build.js))
-        .pipe(uglify())
-        .pipe(removeComments())
-        .pipe(rename("main.min.js"))
-        .pipe(gulp.dest(path.build.js))
-        .pipe(webserver.reload({stream: true}));
-});
-
-
-gulp.task("fonts:build", function() {
-    gulp.src(path.src.fonts)
-        .pipe(gulp.dest(path.build.fonts));
-});
-
-
-gulp.task("image:build", function () {
-    gulp.src(path.src.img)
-        .pipe(imagemin({
-            optimizationLevel: 3,
-            progressive: true,
-            svgoPlugins: [{removeViewBox: false}],
-            interlaced: true
-        }))
-        .pipe(gulp.dest(path.build.img));
-});
-
-
-gulp.task("clean", function (cb) {
-    rimraf(path.clean, cb);
-});
-
-
-gulp.task('build', function (cb) {
-    run(
-        "clean",
-        "css:build",
-        "html:build",        
-        "js:build",
-        "fonts:build",
-        "image:build"
-    , cb);
-});
-
-
-gulp.task("watch", function() {
-    watch([path.watch.html], function(event, cb) {
-        gulp.start("html:build");
+function gulpSass() {
+    return src('./src/assets/scss/**/*.scss')
+        .pipe(sass().on('error', sass.logError))
+        .pipe(sass.sync().on('error', sass.logError))
+        // .pipe(autoprefixer({
+        //     browsers: ['last 6 versions'],
+        //     cascade: false,
+        //     grid: true
+        // }))
+        // .pipe(cssnano())
+        .pipe(dest('./src/assets/css'))
+        // .pipe(browserSync.reload({ stream: true }));
+}
+ 
+function server() {
+    browserSync.init({
+        server: {
+            baseDir: "./src"
+        },
+        port: 8080,
+        notify: false
     });
-    watch([path.watch.css], function(event, cb) {
-        gulp.start("css:build");
+    watch(['src/pug/pages/*.pug'], { events: 'change' }, buildHTML).on('change', function() {
+        browserSync.reload({ match: "**/*.html" });
     });
-    watch([path.watch.js], function(event, cb) {
-        gulp.start("js:build");
+    watch(['src/scss/**/*.scss'], { events: 'change' }, gulpSass).on('change', function() {
+        browserSync.reload({ match: "**/*.css" });
     });
-    watch([path.watch.img], function(event, cb) {
-        gulp.start("image:build");
-    });
-    watch([path.watch.fonts], function(event, cb) {
-        gulp.start("fonts:build");
-    });
-});
+}
 
+function build(done) {
+    del.sync('docs', { force: true });
+    done();
+    src('src/assets/fonts/**/*.{woff,css}').pipe(dest("./docs/assets/fonts"));
+    src('src/assets/css/**/main.css').pipe(dest("./docs/assets/css"));
+    src('src/**/*.html').pipe(dest("./docs"));
+    src('src/assets/js/**/*.js').pipe(dest("./docs/assets/js"));
+    src('src/assets/img/**/*.svg').pipe(dest("./docs/assets/img"));
+    src('src/assets/img/**/*.{png,jpg,gif}')
+        .pipe(tiny())
+        .pipe(dest("./docs/assets/img"));
+}
 
-gulp.task("default", function (cb) {
-    run(
-        "clean",
-        "build",
-        "webserver",
-        "watch"
-    , cb);
-});
+exports.default = series(buildHTML, gulpSass, server);
+exports.build = series(build);
