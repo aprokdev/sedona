@@ -1,0 +1,70 @@
+@import "../../../bower_components/normalize-scss/normalize.scss";
+
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+body {
+  background-color: #f2f2f2;
+  font-family: "PT Sans", Arial, sans-serif;
+}
+ul, li {
+  list-style: none;
+}
+button {
+  font-family: "PT Sans", Arial, sans-serif;
+}
+.container {
+  position: relative;
+  width: 320px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: #ffffff;
+  box-shadow: 0 -5px 9px 2px #dbdbdb;
+  overflow: hidden;
+}
+.main-content {
+  &--scrolled {
+    padding-top: 56px;
+  }
+}
+.global-overlay {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 20;
+}
+
+@import "mixins.scss";
+
+@import "blocks/header.scss";
+@import "blocks/welcome.scss";
+@import "blocks/reasons.scss";
+@import "blocks/booking.scss";
+@import "blocks/footer.scss";
+@import "blocks/sedona.scss";
+@import "blocks/gallery.scss";
+@import "blocks/video-block.scss";
+@import "blocks/form.scss";
+@import "blocks/booking-popup.scss";
+
+@import "blocks/jquery-datepick.scss";
+
+
+@media (min-width: 768px) {
+  .container {
+    width: 100%;    
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    width: 1200px;
+  }
+}

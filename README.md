@@ -1,1 +1,2 @@
-# sedona
+# devbp
+Frontend development boilerplate
